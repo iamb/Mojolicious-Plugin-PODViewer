@@ -47,8 +47,8 @@ Handler name, defaults to C<pod>.
 =head2 route
 
 The L<route|Mojolicious::Routes::Route> to add documentation to. Defaults to
-C<< $app->routes->any('/perldoc') >>. The new route will have a C</:module>
-placeholder added, and a name of C<plugin.perldoc>.
+C<< app->routes->any('/perldoc') >>. The new route will have a name of
+C<plugin.perldoc>.
 
 =head2 default_module
 
@@ -176,13 +176,13 @@ sub register {
   $default_module =~ s{::}{/}g;
 
   my $defaults = {
-      module => $default_module,
+      'podviewer.module' => $default_module,
       layout => $conf->{layout} // 'podviewer',
       allow_modules => $conf->{allow_modules} // [ qr{} ],
   };
   my $route = $conf->{route} ||= $app->routes->any( '/perldoc' );
-  return $route->any( '/:module' =>
-      $defaults => [module => qr/[^.]+/] => \&_perldoc,
+  return $route->any( '/:podviewer.module' =>
+      $defaults => ['podviewer.module' => qr/[^.]+/] => \&_perldoc,
   )->name('plugin.podviewer');
 }
 
@@ -201,7 +201,8 @@ sub _html {
       my $module = $1;
       return undef
         unless grep { $module =~ /$_/ } @{ $c->stash('allow_modules') || [] };
-      $_->{href} =~ s{^\Q$base$module\E}{$c->url_for(module => $module)}e;
+      $_->{href}
+        =~ s{^\Q$base$module\E}{$c->url_for('podviewer.module' => $module)}e;
       $_->{href} =~ s!::!/!gi
     }
   });
@@ -240,7 +241,7 @@ sub _perldoc {
   my $c = shift;
 
   # Find module or redirect to CPAN
-  my $module = join '::', split('/', $c->param('module'));
+  my $module = join '::', split('/', $c->param('podviewer.module'));
   $c->stash(cpan => "https://metacpan.org/pod/$module");
 
   return $c->redirect_to( $c->stash( 'cpan' ) )
@@ -284,15 +285,17 @@ __DATA__
 @@ podviewer/perldoc.html.ep
 <div class="crumbs">
     % my $path;
+    % my $module = stash('podviewer.module');
     % for my $part (split '/', $module) {
         %= '::' if $path
         % $path .= "/$part";
-        %= link_to $part => 'plugin.podviewer', { module => $module }
+        %= link_to $part => 'plugin.podviewer', { 'podviewer.module' => $module }
     % }
     <span class="more">
         (<%= link_to 'source' => 'plugin.podviewer',
           { module => $module, format => 'txt' } %>,
-        <%= link_to 'CPAN' => 'plugin.podviewer', { module => $module } %>)
+        <%= link_to 'CPAN' => 'plugin.podviewer',
+          { 'podviewer.module' => $module } %>)
     </span>
 </div>
 
