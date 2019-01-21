@@ -48,7 +48,7 @@ Handler name, defaults to C<pod>.
 
 The L<route|Mojolicious::Routes::Route> to add documentation to. Defaults to
 C<< app->routes->any('/perldoc') >>. The new route will have a name of
-C<plugin.perldoc>.
+C<plugin.podviewer>.
 
 =head2 default_module
 
